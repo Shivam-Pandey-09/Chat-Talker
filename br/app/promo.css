@@ -1,0 +1,196 @@
+
+/* Home page promo box + global search. Theme variables globals.css se aate hain. */
+ 
+.promo-card {
+  position: relative;
+  margin-top: 16px;
+  border: 1px solid var(--line2);
+  border-radius: 15px;
+  background:
+    radial-gradient(
+      ellipse at 92% 15%,
+      color-mix(in srgb, var(--accent) 16%, transparent),
+      transparent 48%
+    ),
+    var(--surface);
+  box-shadow: 0 9px 27px var(--shadow);
+  overflow: hidden;
+}
+.promo-body {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 22px 26px;
+}
+.promo-img {
+  flex: none;
+  width: 150px;
+  max-height: 130px;
+  object-fit: cover;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+}
+.promo-copy {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  min-width: 0;
+}
+.promo-copy h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.promo-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.promo-tag {
+  padding: 3px 7px;
+  border: 1px solid var(--line2);
+  border-radius: 5px;
+  color: var(--subtle);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.promo-btn {
+  margin-top: 4px;
+  text-decoration: none;
+}
+.promo-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.promo-frame-wrap {
+  padding: 14px 16px 16px;
+}
+.promo-frame-wrap .promo-tag {
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.promo-edit {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--line2);
+  border-radius: 7px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 9px;
+}
+.promo-edit:hover {
+  color: var(--accent2);
+  border-color: var(--accent);
+}
+.promo-empty {
+  display: grid;
+  gap: 6px;
+  padding: 26px;
+  border: 1px dashed var(--line2);
+  border-radius: 15px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  margin-top: 16px;
+  position: relative;
+}
+.promo-empty strong {
+  color: var(--text);
+  font-size: 12px;
+}
+.promo-form {
+  display: grid;
+  gap: 13px;
+  padding: 22px 26px 24px;
+}
+.promo-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.promo-form input,
+.promo-form textarea,
+.promo-form select {
+  width: 100%;
+  border: 1px solid var(--line2);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 10px 11px;
+  font-size: 11px;
+  resize: vertical;
+}
+.promo-form textarea.code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  min-height: 130px;
+}
+.promo-form .promo-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.promo-form .promo-check input {
+  width: auto;
+}
+.promo-form small {
+  color: var(--subtle);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.promo-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+.promo-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+ 
+/* Global search: scrollable + person rows */
+.search-modal {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+.search-person {
+  cursor: default;
+}
+.search-person:hover {
+  background: transparent;
+}
+ 
+@media (max-width: 760px) {
+  .promo-body {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 16px;
+  }
+  .promo-img {
+    width: 100%;
+    max-height: 170px;
+  }
+  .promo-form {
+    padding: 18px 16px 20px;
+  }
+  .promo-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+ 

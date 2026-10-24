@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Match Test</title>
+</head>
+<body style="font-family:sans-serif;max-width:480px;margin:40px auto">
+  <h2>ChatTalker matching test</h2>
+
+  <p>
+    Main hoon:
+    <select id="gender">
+      <option>Man</option>
+      <option>Woman</option>
+      <option>Non-binary</option>
+    </select>
+    Mujhe milna hai:
+    <select id="pref">
+      <option>Any gender</option>
+      <option>Man</option>
+      <option>Woman</option>
+      <option>Non-binary</option>
+    </select>
+  </p>
+  <button id="findBtn">Find match</button>
+  <button id="leaveBtn">Leave / Next</button>
+  <p id="status"><b>Status:</b> abhi koi chat nahi</p>
+
+  <div id="box" style="border:1px solid #ccc;height:240px;overflow:auto;padding:8px;margin-bottom:8px"></div>
+  <input id="msg" placeholder="Message likho..." style="width:70%" disabled>
+  <button id="sendBtn" disabled>Send</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const box = document.getElementById("box");
+    const msg = document.getElementById("msg");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusEl = document.getElementById("status");
+
+    function setStatus(t) { statusEl.innerHTML = "<b>Status:</b> " + t; }
+    function setChatEnabled(on) { msg.disabled = !on; sendBtn.disabled = !on; }
+    function addLine(text) {
+      const p = document.createElement("p");
+      p.textContent = text;
+      box.appendChild(p);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    document.getElementById("findBtn").onclick = () => {
+      box.innerHTML = "";
+      socket.emit("find_match", {
+        gender: document.getElementById("gender").value,
+        preference: document.getElementById("pref").value,
+      });
+    };
+    document.getElementById("leaveBtn").onclick = () => {
+      socket.emit("leave_chat");
+      setChatEnabled(false);
+      setStatus("chat chhod di");
+    };
+
+    function send() {
+      const t = msg.value.trim();
+      if (!t) return;
+      socket.emit("send_message", t);
+      msg.value = "";
+    }
+    sendBtn.onclick = send;
+    msg.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+
+    socket.on("waiting", () => { setChatEnabled(false); setStatus("match dhundh rahe hain..."); });
+    socket.on("match_found", () => { setChatEnabled(true); setStatus("connected! Hello bolo 👋"); });
+    socket.on("partner_left", () => { setChatEnabled(false); setStatus("samne wala chala gaya"); });
+    socket.on("receive_message", (m) => {
+      addLine((m.from === socket.id ? "Tum" : "Stranger") + " (" + m.time + "): " + m.text);
+    });
+  </script>
+</body>
+</html>
