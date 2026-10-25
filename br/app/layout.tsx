@@ -8,8 +8,12 @@ export const metadata: Metadata = {
     "Find a friendly conversation, make a connection, and chat at your own pace.",
   applicationName: "Chat Talker",
   icons: {
-    icon: "/ct-app-logo.png",
-    apple: "/ct-app-logo.png",
+    icon: [
+      { url: "/favicon.ico?v=2", sizes: "any" },
+      { url: "/icon-192.png?v=2", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=2", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/apple-touch-icon.png?v=2",
   },
 };
 

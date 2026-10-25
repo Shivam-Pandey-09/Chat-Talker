@@ -959,9 +959,9 @@ export default function App() {
                       <option value="" disabled>
                         Select your gender
                       </option>
-                      <option>Woman</option>
-                      <option>Man</option>
-                      <option>Non-binary</option>
+                        <option>Female</option>
+                        <option>Man</option>
+                        <option>Non-binary</option>
                       <option>Self-describe</option>
                       <option>Prefer not to say</option>
                     </select>
@@ -1076,7 +1076,7 @@ export default function App() {
               <section className="home-page">
                 <div className="topline">
                   <div className="greeting">
-                    <span className="eyebrow">FRIDAY, OCTOBER 23</span>
+                    <span className="eyebrow">Simply Lovely</span>
                     <h1>
                       A little hello can
                       <br className="desktop-break" /> go a long way.
@@ -1734,8 +1734,8 @@ export default function App() {
                         }
                       >
                         <option>Prefer not to say</option>
-                        <option>Woman</option>
-                        <option>Man</option>
+                        <option>Female</option>
+                        <option>Male</option>
                         <option>Non-binary</option>
                         <option>Self-describe</option>
                       </select>
@@ -1761,7 +1761,7 @@ export default function App() {
                 <div className="profile-card contact-profile-card">
                   <div className="profile-cover"><div className="cover-orb cover-one" /><div className="cover-orb cover-two" /></div>
                   <div className="profile-avatar-row"><Avatar name={activeContact.name} color={activeContact.color} size="large" online={activeContact.online} /><div><h2>{activeContact.name}</h2><span>@{activeContact.name}</span></div></div>
-                  <div className="profile-overview"><p>{activeContact.gender === "Woman" ? "Always happy to meet someone new and share a good conversation." : activeContact.gender === "Man" ? "Curious, friendly, and always up for a thoughtful chat." : "Here for kind conversations and new perspectives."}</p><div className="profile-gender"><span>Gender</span><strong>{activeContact.gender}</strong></div><div className="profile-actions">{friendIds.includes(activeContact.id) ? <span className="friend-status"><Check size={14} /> Friend</span> : sentRequests.includes(activeContact.id) ? <span className="pending-pill">Request sent</span> : <button className="primary-btn" onClick={() => sendFriendRequest(activeContact)}><UserPlus size={15} /> Add friend</button>}<button className="profile-settings-btn" onClick={() => go("messages")}><MessageCircle size={15} /> Message</button></div></div>
+                  <div className="profile-overview"><p>{activeContact.gender === "Female" ? "Always happy to meet someone new and share a good conversation." : activeContact.gender === "Male" ? "Curious, friendly, and always up for a thoughtful chat." : "Here for kind conversations and new perspectives."}</p><div className="profile-gender"><span>Gender</span><strong>{activeContact.gender}</strong></div><div className="profile-actions">{friendIds.includes(activeContact.id) ? <span className="friend-status"><Check size={14} /> Friend</span> : sentRequests.includes(activeContact.id) ? <span className="pending-pill">Request sent</span> : <button className="primary-btn" onClick={() => sendFriendRequest(activeContact)}><UserPlus size={15} /> Add friend</button>}<button className="profile-settings-btn" onClick={() => go("messages")}><MessageCircle size={15} /> Message</button></div></div>
                 </div>
               </section>
             )}
@@ -1949,7 +1949,7 @@ export default function App() {
                   this whenever you like.
                 </p>
                 <div className="gender-options">
-                  {["Any gender", "Woman", "Man", "Non-binary"].map(
+                  {["Any gender", "Female", "Male", "Non-binary"].map(
                     (option) => (
                       <button
                         key={option}
