@@ -29,6 +29,19 @@ const authLimiter = rateLimit({
 });
 app.use("/auth/login", authLimiter);
 app.use("/auth/signup", authLimiter);
+
+// Email bhejne wale routes par kadi limit (spam email rokne ke liye)
+
+const mailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Bahut zyada koshishein. 15 minute baad try karo." },
+});
+app.use("/auth/forgot-password", mailLimiter);
+app.use("/auth/reset-password", mailLimiter);
+app.use("/auth/resend-verification", mailLimiter);
  
 app.use("/auth", require("./auth"));
 // Search se saare users ki list churane se rokne ke liye
@@ -145,9 +158,16 @@ async function cleanupOldPending() {
     console.error(err);
   }
 }
-cleanupOldPending();
-setInterval(cleanupOldPending, 60 * 60 * 1000).unref();
- 
+
+// Cleanup din mein sirf 1 baar, aur tabhi jab koi user aaye (DB waise bhi jaaga hota hai)
+
+let lastCleanup = 0;
+function maybeCleanup() {
+  if (Date.now() - lastCleanup < 24 * 60 * 60 * 1000) return;
+  lastCleanup = Date.now();
+  cleanupOldPending();
+}
+
 // ---------- Login check (JWT) ----------
 io.use(async (socket, next) => {
   try {
@@ -212,6 +232,7 @@ io.on("connection", (socket) => {
  
   if (!wasOnline) notifyPresence(user.id, true);
   flushPending(socket, user.id).catch((err) => console.error(err));
+  maybeCleanup();
  
   // ----- Random chat (kabhi save nahi hoti) -----
   socket.on("find_match", ({ preference } = {}) => {
