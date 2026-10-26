@@ -242,7 +242,7 @@ export default function App() {
     }
     if (!/^[a-zA-Z][a-zA-Z0-9_]{2,19}$/.test(u)) {
       setUsernameStatus("invalid");
-      setUsernameHint("Letter se shuru karo, 3-20 characters, sirf letters/numbers/_");
+      setUsernameHint("Username must be 3-20 characters long and contain only letters, numbers, and underscores");
       return;
     }
     setUsernameStatus("checking");
@@ -289,8 +289,8 @@ export default function App() {
     keepInfoRef.current = true;
     setAuthInfo(
       v === "1"
-        ? "Email verify ho gaya! Ab login karo."
-        : "Verification link galat ya expire ho gaya. Login karke 'dobara bhejo' dabao."
+        ? "Your email verification is complete. You may now log in."
+        : "Verification link is invalid or has expired. Please login and request a new one."
     );
     setView("login");
   }, []);
@@ -503,10 +503,10 @@ export default function App() {
     });
     socket.on("connect_error", (err) => {
       setMatching(false);
-      setNotice(`Server se connect nahi ho paya: ${err.message}`);
+      setNotice(`Failed to connect to server: ${err.message}`);
     });
     socket.on("waiting", () => {
-      setNotice("Abhi koi mila nahi, thoda wait karo…");
+      setNotice("No one available at the moment. Please wait…");
     });
     socket.on(
       "match_found",
@@ -561,13 +561,13 @@ export default function App() {
           ...(old.stranger ?? []),
           {
             id: Date.now() + Math.random(),
-            text: "Samne wale ne chat chhod di.",
+            text: "The other user has left the chat.",
             own: false,
             time: nowTime(),
           },
         ],
       }));
-      setNotice("Samne wale ne chat chhod di.");
+      setNotice("The user has left the chat.");
     });
  
     return () => {
@@ -678,11 +678,11 @@ export default function App() {
     setChatMenuOpen(false);
     if (!activeContact || !activeId) return;
     const reason = window.prompt(
-      `${activeContact.name} ko report kyun kar rahe ho? (kam se kam ek line likho)`
+      `Why are you reporting ${activeContact.name}? (Please provide a reason)`
     );
     if (reason === null) return; // cancel dabaya
     if (!reason.trim()) {
-      setNotice("Report ke liye wajah likhna zaroori hai.");
+      setNotice("A reason is required to submit a report.");
       return;
     }
     const recent = (messages[activeId] ?? []).slice(-10).map((m) => ({ own: m.own, text: m.text }));
@@ -693,8 +693,8 @@ export default function App() {
     });
     setNotice(
       ok
-        ? "Report bhej diya gaya. Hum ise dekhenge. Aap chaho to is user ko Block bhi kar sakte ho."
-        : (data.error ?? "Report nahi gaya, thodi der baad try karo")
+        ? "Report submitted. We will review it. You can also block this user if you wish."
+        : (data.error ?? "Report failed, please try again later.")
     );
   }
   function notifyTyping() {
@@ -713,7 +713,7 @@ export default function App() {
     if (!text || !activeId) return;
     if (activeId === "stranger") {
       if (strangerLeft) {
-        setNotice("Chat khatam ho chuki hai. Naya match dhundo.");
+        setNotice("The chat has ended. Find a new match.");
         return;
       }
       socketRef.current?.emit("send_message", text);
@@ -722,14 +722,14 @@ export default function App() {
     }
     const socket = socketRef.current;
     if (!socket || !socket.connected) {
-      setNotice("Server se connect nahi hua. Thodi der baad try karo.");
+      setNotice("Failed to connect to server. Please try again later.");
       return;
     }
     socket.emit(
       "dm_send",
       { to: Number(activeId), text },
       (res: { ok: boolean; error?: string }) => {
-        if (!res?.ok) setNotice(res?.error ?? "Message nahi gaya.");
+        if (!res?.ok) setNotice(res?.error ?? "Message failed to send.");
       },
     );
     setDraft("");
@@ -742,7 +742,7 @@ export default function App() {
       gender: account.gender,
     });
     if (!ok) {
-      setNotice(data.error ?? "Profile save nahi hua.");
+      setNotice(data.error ?? "Failed to save profile.");
       return;
     }
     const saved = {
@@ -763,7 +763,7 @@ export default function App() {
   function startMatching() {
     const socket = socketRef.current;
     if (!socket || !socket.connected) {
-      setNotice("Server se connect nahi hua. Backend chal raha hai?");
+      setNotice("Failed to connect to server. Is the backend running?");
       return;
     }
     setMatching(true);
@@ -787,7 +787,7 @@ export default function App() {
       userId: Number(person.id),
     });
     if (!ok) {
-      setNotice(data.error ?? "Request nahi gayi.");
+      setNotice(data.error ?? "Failed to send friend request.");
       return;
     }
     await loadSocial();
@@ -804,7 +804,7 @@ export default function App() {
       accept,
     });
     if (!ok) {
-      setNotice(data.error ?? "Kuch galat ho gaya.");
+      setNotice(data.error ?? "Failed to respond to friend request.");
       return;
     }
     await loadSocial();
@@ -821,14 +821,14 @@ export default function App() {
     try {
       const { ok, data } = await apiFetch("/banner", "PUT", bannerForm);
       if (!ok) {
-        setNotice(data.error ?? "Save nahi hua.");
+        setNotice(data.error ?? "Failed to save banner.");
         return;
       }
       setBanner(data.banner);
       setEditingBanner(false);
       setNotice("Promo box updated");
     } catch {
-      setNotice("Server se connect nahi ho paya.");
+      setNotice("Failed to connect to server.");
     } finally {
       setBannerSaving(false);
     }
@@ -845,7 +845,7 @@ export default function App() {
     });
     setChatMenuOpen(false);
     if (!ok) {
-      setNotice(data.error ?? "Friend remove nahi hua.");
+      setNotice(data.error ?? "Failed to remove friend.");
       return;
     }
     await loadSocial();
@@ -861,7 +861,7 @@ export default function App() {
     );
     setChatMenuOpen(false);
     if (!ok) {
-      setNotice(data.error ?? "Kuch galat ho gaya.");
+      setNotice(data.error ?? "some error occurred. Please try again.");
       return;
     }
     if (!wasBlocked && activeId === "stranger") {
@@ -882,7 +882,7 @@ export default function App() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setAuthError(data.error ?? "Kuch galat ho gaya, dobara try karo");
+        setAuthError(data.error ?? "Something went wrong, please try again");
         if (data.needsVerification) setNeedsVerifyEmail(data.email ?? authEmail.trim());
         return;
       }
@@ -893,7 +893,7 @@ export default function App() {
         keepInfoRef.current = true;
         setAuthInfo(
           data.message ??
-            "Verification link aapke email par bheja gaya hai. Inbox aur Spam folder dono dekho."
+            "A verification link has been sent to your email. Please check both your inbox and spam folder."
         );
         setView("login");
         return;
@@ -911,7 +911,7 @@ export default function App() {
       setAuthPassword("");
       setView("home");
     } catch {
-      setAuthError("Server se connect nahi ho paya. Backend chal raha hai?");
+      setAuthError("Failed to connect to server. Is the backend running?");
     } finally {
       setAuthLoading(false);
     }
@@ -919,7 +919,7 @@ export default function App() {
   function finishSignup(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (usernameStatus !== "available") {
-      setAuthError("Pehle ek available username chuno");
+      setAuthError("Please select an available username first.");
       return;
     }
     authRequest("signup", {
@@ -954,10 +954,10 @@ export default function App() {
     setAuthLoading(true);
     try {
       const { ok, data } = await postAuth("resend-verification", { email: needsVerifyEmail });
-      if (ok) setAuthInfo(data.message ?? "Email bhej di gayi hai. Spam folder bhi dekho.");
-      else setAuthError(data.error ?? "Dobara try karo");
+      if (ok) setAuthInfo(data.message ?? "A verification link has been sent to your email. Please check both your inbox and spam folder.");
+      else setAuthError(data.error ?? "Please try again.");
     } catch {
-      setAuthError("Server se connect nahi ho paya.");
+      setAuthError("Failed to connect to server.");
     } finally {
       setAuthLoading(false);
     }
@@ -972,12 +972,12 @@ export default function App() {
       if (resetStep === "email") {
         const { ok, data } = await postAuth("forgot-password", { email: authEmail.trim() });
         if (!ok) {
-          setAuthError(data.error ?? "Dobara try karo");
+          setAuthError(data.error ?? "Please try again.");
           return;
         }
         setResetStep("code");
         setAuthInfo(
-          "Agar ye email registered hai to 6 digit code bhej diya gaya hai. Spam folder bhi dekho."
+          "If this email is registered, a 6-digit code has been sent. Please check your inbox and spam folder."
         );
       } else {
         const { ok, data } = await postAuth("reset-password", {
@@ -986,18 +986,18 @@ export default function App() {
           newPassword: resetNewPassword,
         });
         if (!ok) {
-          setAuthError(data.error ?? "Dobara try karo");
+          setAuthError(data.error ?? "Please try again.");
           return;
         }
         setResetCode("");
         setResetNewPassword("");
         setResetStep("email");
         keepInfoRef.current = true;
-        setAuthInfo(data.message ?? "Password badal gaya, ab login karo.");
+        setAuthInfo(data.message ?? "Password has been changed, please login.");
         setView("login");
       }
     } catch {
-      setAuthError("Server se connect nahi ho paya.");
+      setAuthError("Failed to connect to server.");
     } finally {
       setAuthLoading(false);
     }
@@ -1068,7 +1068,7 @@ export default function App() {
                   <p className="auth-help">
                     {resetStep === "email"
                       ? "Enter the email address connected to your account."
-                      : "Email par aaya 6 digit code aur naya password daalo."}
+                      : "An email with a 6-digit code has been sent. Please enter the code and your new password."}
                   </p>
                 )}
                 {view === "signup" && (
@@ -1208,7 +1208,7 @@ export default function App() {
                 {view === "login" && <button className="auth-forgot" type="button" onClick={() => setView("forgot")}>Forgot password?</button>}
                 {view === "login" && needsVerifyEmail && (
                   <button className="auth-forgot" type="button" onClick={resendVerification} disabled={authLoading}>
-                    Verification email dobara bhejo
+                    Resend verification email
                   </button>
                 )}
                 <button
