@@ -172,6 +172,8 @@ export default function App() {
   const [newChatRequested, setNewChatRequested] = useState(false);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [unreadIds, setUnreadIds] = useState<string[]>([]);
+  // Har dost ke saath last message ka time (is browser mein yaad rehta hai, DB use nahi hota)
+  const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
   const [editingProfile, setEditingProfile] = useState(false);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
@@ -381,6 +383,18 @@ export default function App() {
  
     const socket = io(API, { auth: { token } });
     socketRef.current = socket;
+    const touchChats = (ids: string[]) =>
+      setLastMsgAt((old) => {
+        const now = Date.now();
+        const next = { ...old };
+        for (const id of ids) next[id] = now;
+        try {
+          localStorage.setItem("ct-lastmsg", JSON.stringify(next));
+        } catch {
+          /* storage full ya band hai */
+        }
+        return next;
+      });
     const nowTime = () =>
       new Intl.DateTimeFormat(undefined, {
         hour: "2-digit",
@@ -404,6 +418,7 @@ export default function App() {
         const me = myIdRef.current;
         const own = m.from === me;
         const other = String(own ? m.to : m.from);
+        touchChats([other]);
         setMessages((old) => ({
           ...old,
           [other]: [
@@ -427,6 +442,7 @@ export default function App() {
     socket.on(
       "pending_dms",
       (rows: { id: number; from: number; text: string }[], done: () => void) => {
+        touchChats([...new Set(rows.map((r) => String(r.from)))]);
         setMessages((old) => {
           const next = { ...old };
           for (const r of rows) {
@@ -563,10 +579,23 @@ export default function App() {
           `${person.name} ${person.preview}`
             .toLowerCase()
             .includes(query.toLowerCase()),
+        )
+        .sort(
+          (a, b) =>
+            (lastMsgAt[b.id] ?? 0) - (lastMsgAt[a.id] ?? 0) ||
+            a.name.localeCompare(b.name),
         ),
-    [contactsList, messages, query],
+    [contactsList, messages, query, lastMsgAt],
   );
  
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ct-lastmsg");
+      if (saved) setLastMsgAt(JSON.parse(saved));
+    } catch {
+      /* kharab data ho to ignore */
+    }
+  }, []);
   useEffect(() => {
     const savedTheme = localStorage.getItem("ct-theme");
     if (savedTheme) setTheme(savedTheme);
@@ -1993,6 +2022,7 @@ export default function App() {
                         onClick={() => {
                         localStorage.removeItem("ct-token");
                         localStorage.removeItem("ct-profile");
+                        localStorage.removeItem("ct-lastmsg");
                         myIdRef.current = null;
                         setFriends([]);
                         setOutgoing([]);
