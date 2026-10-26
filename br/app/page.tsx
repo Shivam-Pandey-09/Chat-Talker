@@ -174,6 +174,9 @@ export default function App() {
   const [unreadIds, setUnreadIds] = useState<string[]>([]);
   // Har dost ke saath last message ka time (is browser mein yaad rehta hai, DB use nahi hota)
   const [lastMsgAt, setLastMsgAt] = useState<Record<string, number>>({});
+  // Kaun abhi "typing..." kar raha hai (friend ka id, ya random chat ke liye "stranger")
+  const [typingMap, setTypingMap] = useState<Record<string, boolean>>({});
+  const lastTypingSentRef = useRef(0);
   const [editingProfile, setEditingProfile] = useState(false);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
@@ -383,6 +386,16 @@ export default function App() {
  
     const socket = io(API, { auth: { token } });
     socketRef.current = socket;
+    const typingTimers: Record<string, number> = {};
+    const clearTyping = (id: string) => {
+      window.clearTimeout(typingTimers[id]);
+      setTypingMap((o) => (o[id] ? { ...o, [id]: false } : o));
+    };
+    const showTyping = (id: string) => {
+      setTypingMap((o) => (o[id] ? o : { ...o, [id]: true }));
+      window.clearTimeout(typingTimers[id]);
+      typingTimers[id] = window.setTimeout(() => clearTyping(id), 3000);
+    };
     const touchChats = (ids: string[]) =>
       setLastMsgAt((old) => {
         const now = Date.now();
@@ -419,6 +432,7 @@ export default function App() {
         const own = m.from === me;
         const other = String(own ? m.to : m.from);
         touchChats([other]);
+        if (!own) clearTyping(other);
         setMessages((old) => ({
           ...old,
           [other]: [
@@ -507,7 +521,14 @@ export default function App() {
         setNotice(`You’re connected with ${partner.name}. Say hello!`);
       },
     );
+    socket.on("typing", ({ from }: { from: number }) => {
+      showTyping(String(from));
+    });
+    socket.on("partner_typing", () => {
+      showTyping("stranger");
+    });
     socket.on("receive_message", (m: { text: string; from: string }) => {
+      if (m.from !== socket.id) clearTyping("stranger");
       setMessages((old) => ({
         ...old,
         stranger: [
@@ -522,6 +543,7 @@ export default function App() {
       }));
     });
     socket.on("partner_left", () => {
+      clearTyping("stranger");
       setStrangerLeft(true);
       setMessages((old) => ({
         ...old,
@@ -638,6 +660,16 @@ export default function App() {
     setMobileList(false);
     setUnreadIds((current) => current.filter((unreadId) => unreadId !== id));
     setChatMenuOpen(false);
+  }
+  function notifyTyping() {
+    const socket = socketRef.current;
+    if (!socket || !socket.connected || !activeId) return;
+    if (activeId === "stranger" && strangerLeft) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 2000) return; // 2 second mein 1 baar
+    lastTypingSentRef.current = now;
+    if (activeId === "stranger") socket.emit("typing_random");
+    else socket.emit("typing", { to: Number(activeId) });
   }
   function sendMessage(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1613,7 +1645,9 @@ export default function App() {
                           <div className="chat-person">
                           <strong>{activeContact.name}</strong>
                           <span>
-                            {activeId === "stranger"
+                            {typingMap[activeId ?? ""]
+                              ? "typing…"
+                              : activeId === "stranger"
                               ? "Random chat"
                               : activeContact.online
                                 ? "Active now"
@@ -1690,7 +1724,10 @@ export default function App() {
                         </button>
                         <input
                           value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
+                          onChange={(e) => {
+                            setDraft(e.target.value);
+                            notifyTyping();
+                          }}
                           placeholder={blockedIds.includes(activeContact.id) ? "Unblock this person to send a message" : `Write to ${activeContact.name.split(" ")[0]}…`}
                           aria-label="Message"
                           disabled={blockedIds.includes(activeContact.id)}
