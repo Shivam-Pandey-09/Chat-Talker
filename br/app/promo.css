@@ -1,4 +1,5 @@
 
+ 
 /* Home page promo box + global search. Theme variables globals.css se aate hain. */
  
 .promo-card {
@@ -192,5 +193,63 @@
   .promo-form-row {
     grid-template-columns: 1fr;
   }
+}
+ 
+ 
+/* Unread count badge in desktop sidebar */
+.nav-unread-count {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #f16e85;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+}
+@media (max-width: 1120px) {
+  .nav-unread-count {
+    margin-left: -22px;
+    margin-top: 8px;
+    align-self: flex-start;
+    min-width: 0;
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    font-size: 0;
+  }
+}
+ 
+ 
+/* Password show/hide (eye) button */
+.pw-field {
+  position: relative;
+  display: block;
+}
+.auth-form .pw-field input {
+  width: 100%;
+  padding-right: 46px;
+}
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pw-toggle:hover {
+  color: var(--accent2);
 }
  

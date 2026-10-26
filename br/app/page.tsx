@@ -9,6 +9,8 @@ import {
   Check,
   ChevronLeft,
   Compass,
+  Eye,
+  EyeOff,
   Home,
   LogOut,
   MessageCircle,
@@ -200,8 +202,10 @@ export default function App() {
   const [bannerSaving, setBannerSaving] = useState(false);
   const myIdRef = useRef<number | null>(null);
   const activeIdRef = useRef<string | null>(null);
+  const friendsRef = useRef<Person[]>([]);
   const viewRef = useRef<View>("welcome");
   activeIdRef.current = activeId;
+  friendsRef.current = friends;
   viewRef.current = view;
   const friendIds = friends.map((p) => p.id);
   const sentRequests = outgoing.map((p) => p.id);
@@ -218,6 +222,7 @@ export default function App() {
   const [resetCode, setResetCode] = useState("");
   const [resetNewPassword, setResetNewPassword] = useState("");
   const keepInfoRef = useRef(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [authUsername, setAuthUsername] = useState("");
   const [authContactType, setAuthContactType] = useState<"email" | "phone">("email");
   const [usernameStatus, setUsernameStatus] = useState<
@@ -271,6 +276,7 @@ export default function App() {
   }, [authUsername, view]);
   useEffect(() => {
     setAuthError("");
+    setShowPassword(false);
     if (keepInfoRef.current) keepInfoRef.current = false;
     else setAuthInfo("");
   }, [view]);
@@ -450,6 +456,10 @@ export default function App() {
           viewRef.current === "messages" && activeIdRef.current === other;
         if (!own && !viewing) {
           setUnreadIds((cur) => (cur.includes(other) ? cur : [...cur, other]));
+          const senderName =
+            friendsRef.current.find((p) => p.id === other)?.name ?? "Someone";
+          const short = m.text.length > 60 ? `${m.text.slice(0, 60)}…` : m.text;
+          setNotice(`New message from ${senderName}: ${short}`);
         }
       },
     );
@@ -644,6 +654,9 @@ export default function App() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeId]);
+  useEffect(() => {
+    document.title = unreadIds.length > 0 ? `(${unreadIds.length}) Chat Talker` : "Chat Talker";
+  }, [unreadIds]);
   useEffect(() => {
     if (!notice) return;
     const id = window.setTimeout(() => setNotice(""), 3200);
@@ -1118,8 +1131,9 @@ export default function App() {
                     </label>
                     <label>
                       New password
+                      <span className="pw-field">
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         autoComplete="new-password"
                         minLength={8}
                         required
@@ -1127,13 +1141,24 @@ export default function App() {
                         onChange={(e) => setResetNewPassword(e.target.value)}
                         placeholder="At least 8 characters"
                       />
+                  <button
+                    type="button"
+                    className="pw-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </span>
                     </label>
                   </>
                 )}
                 {view !== "forgot" && <label>
                   Password
+                  <span className="pw-field">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     autoComplete={
                       view === "signup" ? "new-password" : "current-password"
                     }
@@ -1143,6 +1168,16 @@ export default function App() {
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder="At least 8 characters"
                   />
+                  <button
+                    type="button"
+                    className="pw-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </span>
                 </label>}
                 {view === "signup" && (
                   <label>
@@ -1220,6 +1255,11 @@ export default function App() {
                 >
                   <Icon size={21} strokeWidth={1.8} />
                   <span className="nav-label">{label}</span>
+                  {id === "messages" && unreadIds.length > 0 && (
+                    <i className="nav-unread-count" aria-label="Unread messages">
+                      {unreadIds.length}
+                    </i>
+                  )}
                 </button>
               ))}
             </nav>
