@@ -661,6 +661,29 @@ export default function App() {
     setUnreadIds((current) => current.filter((unreadId) => unreadId !== id));
     setChatMenuOpen(false);
   }
+  async function reportContact() {
+    setChatMenuOpen(false);
+    if (!activeContact || !activeId) return;
+    const reason = window.prompt(
+      `${activeContact.name} ko report kyun kar rahe ho? (kam se kam ek line likho)`
+    );
+    if (reason === null) return; // cancel dabaya
+    if (!reason.trim()) {
+      setNotice("Report ke liye wajah likhna zaroori hai.");
+      return;
+    }
+    const recent = (messages[activeId] ?? []).slice(-10).map((m) => ({ own: m.own, text: m.text }));
+    const { ok, data } = await apiFetch("/social/report", "POST", {
+      userId: Number(activeContact.id),
+      reason: reason.trim(),
+      messages: recent,
+    });
+    setNotice(
+      ok
+        ? "Report bhej diya gaya. Hum ise dekhenge. Aap chaho to is user ko Block bhi kar sakte ho."
+        : (data.error ?? "Report nahi gaya, thodi der baad try karo")
+    );
+  }
   function notifyTyping() {
     const socket = socketRef.current;
     if (!socket || !socket.connected || !activeId) return;
@@ -1675,7 +1698,7 @@ export default function App() {
                           {chatMenuOpen && <div className="chat-menu" role="menu">
                             <button role="menuitem" disabled={!friendIds.includes(activeContact.id)} onClick={removeFriend}>Remove friend</button>
                             <button role="menuitem" className="danger-option" onClick={blockContact}>{blockedIds.includes(activeContact.id) ? "Unblock" : "Block"}</button>
-                            <button role="menuitem" className="danger-option" onClick={() => { setChatMenuOpen(false); setNotice(`Report submitted for review.`); }}>Report</button>
+                            <button role="menuitem" className="danger-option" onClick={reportContact}>Report</button>
                           </div>}
                         </div>
                       </header>
