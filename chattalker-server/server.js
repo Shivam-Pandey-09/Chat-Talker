@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
@@ -29,9 +30,8 @@ const authLimiter = rateLimit({
 });
 app.use("/auth/login", authLimiter);
 app.use("/auth/signup", authLimiter);
-
-// Email bhejne wale routes par kadi limit (spam email rokne ke liye)
-
+ 
+// Email bhejne wale routes par kadi limit
 const mailLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 8,
@@ -158,16 +158,14 @@ async function cleanupOldPending() {
     console.error(err);
   }
 }
-
 // Cleanup din mein sirf 1 baar, aur tabhi jab koi user aaye (DB waise bhi jaaga hota hai)
-
 let lastCleanup = 0;
 function maybeCleanup() {
   if (Date.now() - lastCleanup < 24 * 60 * 60 * 1000) return;
   lastCleanup = Date.now();
   cleanupOldPending();
 }
-
+ 
 // ---------- Login check (JWT) ----------
 io.use(async (socket, next) => {
   try {
@@ -284,6 +282,28 @@ io.on("connection", (socket) => {
   socket.on("leave_chat", () => {
     removeFromQueue(socket);
     endChat(socket);
+  });
+ 
+  // ----- Typing indicator (database use nahi hota) -----
+  let lastTypingAt = 0;
+  function typingAllowed() {
+    const now = Date.now();
+    if (now - lastTypingAt < 1000) return false; // spam rokne ke liye
+    lastTypingAt = now;
+    return true;
+  }
+ 
+  socket.on("typing", (payload) => {
+    const other = Number(payload && payload.to);
+    if (!Number.isInteger(other) || other === user.id) return;
+    if (isBlocked(user.id, other) || !typingAllowed()) return;
+    io.to(`user-${other}`).emit("typing", { from: user.id });
+  });
+ 
+  socket.on("typing_random", () => {
+    if (socket.data.room && typingAllowed()) {
+      socket.to(socket.data.room).emit("partner_typing");
+    }
   });
  
   // ----- Dosto ko message -----
