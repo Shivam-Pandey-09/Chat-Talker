@@ -1,6 +1,8 @@
+
 const express = require("express");
 const pool = require("./db");
 const requireAuth = require("./middleware");
+const { sendMail } = require("./mail");
  
 const router = express.Router();
 router.use(requireAuth);
@@ -251,6 +253,41 @@ router.get("/search", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+ 
+// REPORT: aapko email aa jati hai, database mein kuch save nahi hota
+const escapeHtml = (v) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+ 
+router.post("/report", async (req, res) => {
+  try {
+    const other = parseOther(req, res);
+    if (other === null) return;
+ 
+    const reason = String(req.body.reason || "").trim().slice(0, 300);
+    const context = Array.isArray(req.body.messages) ? req.body.messages.slice(-10) : [];
+    const lines = context
+      .map((m) => `${m && m.own ? "Reporter" : "Reported"}: ${escapeHtml(String((m && m.text) || "").slice(0, 300))}`)
+      .join("<br>");
+ 
+    const r = await pool.query("SELECT id, username FROM users WHERE id = ANY($1::int[])", [
+      [req.userId, other],
+    ]);
+    const nameOf = (id) => (r.rows.find((u) => u.id === id) || {}).username || "?";
+ 
+    await sendMail(
+      process.env.ADMIN_EMAIL,
+      "Chat Talker - Naya report",
+      `<p><b>Reporter:</b> ${escapeHtml(nameOf(req.userId))} (ID ${req.userId})</p>
+       <p><b>Reported:</b> ${escapeHtml(nameOf(other))} (ID ${other})</p>
+       <p><b>Reason:</b> ${escapeHtml(reason) || "(nahi likha)"}</p>
+       <p><b>Last messages (reporter ke browser se):</b><br>${lines || "(koi nahi)"}</p>`
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Report nahi gaya, thodi der baad try karo" });
   }
 });
  

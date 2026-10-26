@@ -55,6 +55,17 @@ app.use(
     message: { error: "Bahut tez search. Thoda ruko." },
   })
 );
+// Report spam rokne ke liye
+app.use(
+  "/social/report",
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Bahut zyada reports. Thodi der baad try karo." },
+  })
+);
 app.use("/social", require("./social"));
 app.use("/banner", require("./banner"));
  
