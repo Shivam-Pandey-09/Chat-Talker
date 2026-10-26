@@ -1,3 +1,4 @@
+
 "use client";
  
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -206,6 +207,12 @@ export default function App() {
   const [authGender, setAuthGender] = useState("");
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const [authInfo, setAuthInfo] = useState("");
+  const [needsVerifyEmail, setNeedsVerifyEmail] = useState("");
+  const [resetStep, setResetStep] = useState<"email" | "code">("email");
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const keepInfoRef = useRef(false);
   const [authUsername, setAuthUsername] = useState("");
   const [authContactType, setAuthContactType] = useState<"email" | "phone">("email");
   const [usernameStatus, setUsernameStatus] = useState<
@@ -229,7 +236,7 @@ export default function App() {
       return;
     }
     setUsernameStatus("checking");
-    setUsernameHint("Check ho raha hai…");
+    setUsernameHint("Checking…");
     let cancelled = false;
     const id = window.setTimeout(async () => {
       try {
@@ -240,10 +247,10 @@ export default function App() {
         if (cancelled) return;
         if (data.available) {
           setUsernameStatus("available");
-          setUsernameHint("✓ Available hai");
+          setUsernameHint("✓ Available username");
         } else {
           setUsernameStatus("taken");
-          setUsernameHint(data.reason ?? "✗ Ye username le liya gaya hai");
+          setUsernameHint(data.reason ?? "Username already taken");
         }
       } catch {
         if (!cancelled) {
@@ -259,7 +266,23 @@ export default function App() {
   }, [authUsername, view]);
   useEffect(() => {
     setAuthError("");
+    if (keepInfoRef.current) keepInfoRef.current = false;
+    else setAuthInfo("");
   }, [view]);
+  useEffect(() => {
+    // Email ke link par click karke wapas aane par
+    const p = new URLSearchParams(window.location.search);
+    const v = p.get("verified");
+    if (v === null) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    keepInfoRef.current = true;
+    setAuthInfo(
+      v === "1"
+        ? "Email verify ho gaya! Ab login karo."
+        : "Verification link galat ya expire ho gaya. Login karke 'dobara bhejo' dabao."
+    );
+    setView("login");
+  }, []);
   async function loadSocial() {
     const { ok, status, data } = await apiFetch("/social/overview");
     if (status === 401) {
@@ -763,6 +786,19 @@ export default function App() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setAuthError(data.error ?? "Kuch galat ho gaya, dobara try karo");
+        if (data.needsVerification) setNeedsVerifyEmail(data.email ?? authEmail.trim());
+        return;
+      }
+      if (data.needsVerification) {
+        // Signup ho gaya, ab email verify karna hai
+        setNeedsVerifyEmail(authEmail.trim());
+        setAuthPassword("");
+        keepInfoRef.current = true;
+        setAuthInfo(
+          data.message ??
+            "Verification link aapke email par bheja gaya hai. Inbox aur Spam folder dono dekho."
+        );
+        setView("login");
         return;
       }
       localStorage.setItem("ct-token", data.token);
@@ -792,7 +828,7 @@ export default function App() {
     authRequest("signup", {
       name: authName.trim(),
       username: authUsername.trim(),
-      contactType: authContactType,
+      contactType: "email",
       contact: authEmail.trim(),
       password: authPassword,
       gender: authGender,
@@ -806,19 +842,78 @@ export default function App() {
     });
   }
  
-  function submitPasswordReset(e: FormEvent<HTMLFormElement>) {
+  async function postAuth(path: string, body: object) {
+    const res = await fetch(`${API}/auth/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  }
+ 
+  async function resendVerification() {
+    setAuthError("");
+    setAuthLoading(true);
+    try {
+      const { ok, data } = await postAuth("resend-verification", { email: needsVerifyEmail });
+      if (ok) setAuthInfo(data.message ?? "Email bhej di gayi hai. Spam folder bhi dekho.");
+      else setAuthError(data.error ?? "Dobara try karo");
+    } catch {
+      setAuthError("Server se connect nahi ho paya.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+ 
+  async function submitPasswordReset(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setAuthError("Password reset abhi connected nahi hai. Jaldi aayega.");
+    setAuthError("");
+    setAuthInfo("");
+    setAuthLoading(true);
+    try {
+      if (resetStep === "email") {
+        const { ok, data } = await postAuth("forgot-password", { email: authEmail.trim() });
+        if (!ok) {
+          setAuthError(data.error ?? "Dobara try karo");
+          return;
+        }
+        setResetStep("code");
+        setAuthInfo(
+          "Agar ye email registered hai to 6 digit code bhej diya gaya hai. Spam folder bhi dekho."
+        );
+      } else {
+        const { ok, data } = await postAuth("reset-password", {
+          email: authEmail.trim(),
+          code: resetCode.trim(),
+          newPassword: resetNewPassword,
+        });
+        if (!ok) {
+          setAuthError(data.error ?? "Dobara try karo");
+          return;
+        }
+        setResetCode("");
+        setResetNewPassword("");
+        setResetStep("email");
+        keepInfoRef.current = true;
+        setAuthInfo(data.message ?? "Password badal gaya, ab login karo.");
+        setView("login");
+      }
+    } catch {
+      setAuthError("Server se connect nahi ho paya.");
+    } finally {
+      setAuthLoading(false);
+    }
   }
  
   const contactLabel =
     view === "signup"
       ? authContactType === "email" ? "Email" : "Phone number"
-      : view === "forgot" ? "Email" : "Email, phone or username";
+      : view === "forgot" ? "Email" : "Email or username";
   const contactPlaceholder =
     view === "signup"
       ? authContactType === "email" ? "you@example.com" : "+91 98765 43210"
-      : view === "forgot" ? "you@example.com" : "Email, phone or username";
+      : view === "forgot" ? "you@example.com" : "Email or username";
   const contactInputType =
     view === "signup"
       ? authContactType === "phone" ? "tel" : "email"
@@ -872,7 +967,13 @@ export default function App() {
                 className="auth-form"
                 onSubmit={view === "signup" ? finishSignup : view === "forgot" ? submitPasswordReset : finishLogin}
               >
-                {view === "forgot" && <p className="auth-help">Enter the email address connected to your account.</p>}
+                {view === "forgot" && (
+                  <p className="auth-help">
+                    {resetStep === "email"
+                      ? "Enter the email address connected to your account."
+                      : "Email par aaya 6 digit code aur naya password daalo."}
+                  </p>
+                )}
                 {view === "signup" && (
                   <label>
                     Your name
@@ -905,22 +1006,6 @@ export default function App() {
                         </span>
                       )}
                     </label>
-                    <div className="contact-toggle" role="group" aria-label="Sign up with">
-                      <button
-                        type="button"
-                        className={authContactType === "email" ? "active" : ""}
-                        onClick={() => { setAuthContactType("email"); setAuthEmail(""); }}
-                      >
-                        Email
-                      </button>
-                      <button
-                        type="button"
-                        className={authContactType === "phone" ? "active" : ""}
-                        onClick={() => { setAuthContactType("phone"); setAuthEmail(""); }}
-                      >
-                        Phone number
-                      </button>
-                    </div>
                   </>
                 )}
                 <label>
@@ -934,6 +1019,33 @@ export default function App() {
                     placeholder={contactPlaceholder}
                   />
                 </label>
+                {view === "forgot" && resetStep === "code" && (
+                  <>
+                    <label>
+                      6 digit code
+                      <input
+                        inputMode="numeric"
+                        maxLength={6}
+                        required
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                      />
+                    </label>
+                    <label>
+                      New password
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                      />
+                    </label>
+                  </>
+                )}
                 {view !== "forgot" && <label>
                   Password
                   <input
@@ -967,13 +1079,19 @@ export default function App() {
                     </select>
                   </label>
                 )}
+                {authInfo && <p className="auth-help" role="status">{authInfo}</p>}
                 {authError && <p className="auth-error" role="alert">{authError}</p>}
                 <button className="primary-btn" type="submit" disabled={authLoading}>
                   {authLoading
                     ? "Please wait…"
-                    : view === "signup" ? "Create account" : view === "forgot" ? "Send reset link" : "Log in"}
+                    : view === "signup" ? "Create account" : view === "forgot" ? (resetStep === "email" ? "Send code" : "Change password") : "Log in"}
                 </button>
                 {view === "login" && <button className="auth-forgot" type="button" onClick={() => setView("forgot")}>Forgot password?</button>}
+                {view === "login" && needsVerifyEmail && (
+                  <button className="auth-forgot" type="button" onClick={resendVerification} disabled={authLoading}>
+                    Verification email dobara bhejo
+                  </button>
+                )}
                 <button
                   className="auth-switch"
                   type="button"
