@@ -1191,7 +1191,7 @@ export default function App() {
                         Select your gender
                       </option>
                         <option>Female</option>
-                        <option>Man</option>
+                        <option>Male</option>
                         <option>Non-binary</option>
                       <option>Self-describe</option>
                       <option>Prefer not to say</option>
